@@ -1,11 +1,20 @@
+import 'dart:io';
+
 import 'package:desktop_window/desktop_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_todo/screens/home.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await DesktopWindow.setMinWindowSize(const Size(400, 400));
+
+  if (!kIsWeb) {
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      await DesktopWindow.setMinWindowSize(const Size(400, 400));
+    }
+  }
+
   runApp(const MyApp());
 }
 

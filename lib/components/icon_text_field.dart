@@ -5,6 +5,8 @@ class IconTextField extends StatelessWidget {
   final IconData icon;
   final Color iconColor, fillColor;
   final String hintText;
+  final TextEditingController? controller;
+  final VoidCallback onEditingComplete;
 
   const IconTextField({
     super.key,
@@ -12,6 +14,8 @@ class IconTextField extends StatelessWidget {
     required this.iconColor,
     required this.fillColor,
     required this.hintText,
+    required this.onEditingComplete,
+    this.controller,
     this.width,
     this.height,
   });
@@ -22,6 +26,8 @@ class IconTextField extends StatelessWidget {
       width: width,
       height: height ?? 30,
       child: TextField(
+        onEditingComplete: onEditingComplete,
+        controller: controller,
         style: const TextStyle(
           color: Colors.white,
         ),

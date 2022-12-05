@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:just_todo/components/default_todo_screen.dart';
 import 'package:just_todo/components/icon_text_field.dart';
 import 'package:just_todo/models/drawer_item_data.dart';
-import 'package:just_todo/models/todo.dart';
 import 'package:just_todo/responsive.dart';
 
 class Home extends StatefulWidget {
@@ -16,6 +15,8 @@ class _HomeState extends State<Home> {
   late int _currentIndex;
   late List<DefaultTodoScreen> _screens;
   late List<DrawerItemData> _drawerItemList;
+  late List<DrawerItemData> _customDrawerItemList;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -53,10 +54,15 @@ class _HomeState extends State<Home> {
         title: '작업',
       )
     ];
+    _customDrawerItemList = [];
     _screens = [
       ..._drawerItemList
-          .map((e) => DefaultTodoScreen(
-              primaryColor: e.color, title: e.title, list: const []))
+          .map(
+            (e) => DefaultTodoScreen(
+              primaryColor: e.color,
+              title: e.title,
+            ),
+          )
           .toList(),
     ];
   }
@@ -69,15 +75,20 @@ class _HomeState extends State<Home> {
     required int index,
   }) {
     return ListTile(
-      onTap: () => setState(() {
-        _currentIndex = index;
-      }),
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+        if (_scaffoldKey.currentState!.isDrawerOpen) {
+          _scaffoldKey.currentState!.closeDrawer();
+        }
+      },
       leading: Icon(
         iconData,
         color: color,
       ),
       title: Text(
-        title,
+        title.replaceAll('', '\u{200B}'),
         style: const TextStyle(
           overflow: TextOverflow.ellipsis,
         ),
@@ -88,34 +99,98 @@ class _HomeState extends State<Home> {
 
   Widget todoDrawer() {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(30.0),
-            child: Image.network(
-                'https://pbs.twimg.com/profile_images/1374979417915547648/vKspl9Et_400x400.jpg'),
-          ),
-          title: const Text('qkrtnsgud'),
-          subtitle: const Text('qkrtnsgud029'),
+        Column(
+          children: [
+            ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(30.0),
+                child: Image.network(
+                    'https://pbs.twimg.com/profile_images/1374979417915547648/vKspl9Et_400x400.jpg'),
+              ),
+              title: const Text('qkrtnsgud'),
+              subtitle: const Text('qkrtnsgud029'),
+            ),
+            IconTextField(
+              fillColor: Colors.grey[850]!,
+              hintText: '검색',
+              icon: Icons.search,
+              iconColor: Colors.white,
+              onEditingComplete: () {},
+            ),
+            ..._drawerItemList.map(
+              (e) => drawerItem(
+                iconData: e.iconData,
+                color: e.color,
+                title: e.title,
+                count: 0,
+                index: _drawerItemList.indexOf(e),
+              ),
+            ),
+            const Divider(
+              color: Colors.white,
+              height: 2,
+            ),
+            ..._customDrawerItemList.map(
+              (e) => drawerItem(
+                iconData: e.iconData,
+                color: e.color,
+                title: e.title,
+                count: 0,
+                index: _customDrawerItemList.indexOf(e),
+              ),
+            )
+          ],
         ),
-        IconTextField(
-          fillColor: Colors.grey[850]!,
-          hintText: '검색',
-          icon: Icons.search,
-          iconColor: Colors.white,
-        ),
-        ..._drawerItemList.map(
-          (e) => drawerItem(
-            iconData: e.iconData,
-            color: e.color,
-            title: e.title,
-            count: _screens[_drawerItemList.indexOf(e)].count,
-            index: _drawerItemList.indexOf(e),
-          ),
-        ),
-        const Divider(
-          color: Colors.white,
-          height: 2,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              style: const ButtonStyle(
+                  foregroundColor: MaterialStatePropertyAll(Colors.white)),
+              onPressed: () {
+                var title = '제목 없는 목록';
+                var count = _customDrawerItemList
+                    .where((element) => element.title.contains(title))
+                    .length;
+                var item = DrawerItemData(
+                  iconData: Icons.list,
+                  color: Colors.teal,
+                  title: '$title${count == 0 ? "" : " $count"}',
+                );
+                var screen = DefaultTodoScreen(
+                  primaryColor: item.color,
+                  title: item.title,
+                );
+
+                setState(() {
+                  _customDrawerItemList.add(item);
+                  _screens.add(screen);
+                });
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('새 목록'),
+            ),
+            IconButton(
+              onPressed: () {
+                var title = '제목 없는 목록';
+                var count = _customDrawerItemList
+                    .where((element) => element.title.contains(title))
+                    .length;
+                var item = DrawerItemData(
+                  iconData: Icons.folder_outlined,
+                  color: Colors.teal,
+                  title: '$title${count == 0 ? "" : " $count"}',
+                );
+
+                setState(() {
+                  _customDrawerItemList.add(item);
+                });
+              },
+              icon: const Icon(Icons.playlist_add_sharp),
+            )
+          ],
         )
       ],
     );
@@ -124,6 +199,7 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: Responsive.isDesktop(context) ? null : AppBar(),
       drawer: Responsive.isDesktop(context) ? null : todoDrawer(),
       body: SafeArea(
