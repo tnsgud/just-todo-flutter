@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_todo/components/default_todo_screen.dart';
 import 'package:just_todo/components/icon_text_field.dart';
+import 'package:just_todo/models/drawer_folder_data.dart';
 import 'package:just_todo/models/drawer_item_data.dart';
 import 'package:just_todo/responsive.dart';
 
@@ -67,33 +68,53 @@ class _HomeState extends State<Home> {
     ];
   }
 
-  Widget drawerItem({
-    required IconData iconData,
-    required Color? color,
-    required String title,
-    required int count,
-    required int index,
-  }) {
-    return ListTile(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-        if (_scaffoldKey.currentState!.isDrawerOpen) {
-          _scaffoldKey.currentState!.closeDrawer();
-        }
-      },
-      leading: Icon(
-        iconData,
-        color: color,
+  Widget drawerFolderItem({required DrawerFolderData data}) {
+    return DragTarget<DrawerItemData>(
+      builder: (context, candidateData, rejectedData) => ExpansionTile(
+        leading: Icon(
+          data.iconData,
+          color: Colors.teal,
+        ),
+        title: Text(
+          data.title.replaceAll('', '\u{200B}'),
+          style: const TextStyle(overflow: TextOverflow.ellipsis),
+        ),
+        children: data.list.map((e) => drawerItem(data: e, index: 0)).toList(),
       ),
-      title: Text(
-        title.replaceAll('', '\u{200B}'),
-        style: const TextStyle(
-          overflow: TextOverflow.ellipsis,
+      onAccept: (sentData) {
+        data.list.add(sentData);
+
+        setState(() {
+          _customDrawerItemList.remove(sentData);
+        });
+      },
+    );
+  }
+
+  Widget drawerItem({required DrawerItemData data, required int index}) {
+    return Draggable<DrawerItemData>(
+      data: data,
+      feedback: Container(),
+      child: ListTile(
+        onTap: () {
+          setState(() {
+            _currentIndex = index;
+          });
+          if (_scaffoldKey.currentState!.isDrawerOpen) {
+            _scaffoldKey.currentState!.closeDrawer();
+          }
+        },
+        leading: Icon(
+          data.iconData,
+          color: data.color,
+        ),
+        title: Text(
+          data.title.replaceAll('', '\u{200B}'),
+          style: const TextStyle(
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
-      trailing: count != 0 ? Text('$count') : null,
     );
   }
 
@@ -121,10 +142,7 @@ class _HomeState extends State<Home> {
             ),
             ..._drawerItemList.map(
               (e) => drawerItem(
-                iconData: e.iconData,
-                color: e.color,
-                title: e.title,
-                count: 0,
+                data: e,
                 index: _drawerItemList.indexOf(e),
               ),
             ),
@@ -133,13 +151,12 @@ class _HomeState extends State<Home> {
               height: 2,
             ),
             ..._customDrawerItemList.map(
-              (e) => drawerItem(
-                iconData: e.iconData,
-                color: e.color,
-                title: e.title,
-                count: 0,
-                index: _customDrawerItemList.indexOf(e),
-              ),
+              (e) => e is DrawerFolderData
+                  ? drawerFolderItem(data: e)
+                  : drawerItem(
+                      data: e,
+                      index: _customDrawerItemList.indexOf(e),
+                    ),
             )
           ],
         ),
@@ -178,8 +195,9 @@ class _HomeState extends State<Home> {
                 var count = _customDrawerItemList
                     .where((element) => element.title.contains(title))
                     .length;
-                var item = DrawerItemData(
-                  iconData: Icons.folder_outlined,
+                var item = DrawerFolderData(
+                  list: [],
+                  iconData: Icons.folder_rounded,
                   color: Colors.teal,
                   title: '$title${count == 0 ? "" : " $count"}',
                 );
@@ -188,7 +206,7 @@ class _HomeState extends State<Home> {
                   _customDrawerItemList.add(item);
                 });
               },
-              icon: const Icon(Icons.playlist_add_sharp),
+              icon: const Icon(Icons.create_new_folder_rounded),
             )
           ],
         )
