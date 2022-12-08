@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:just_todo/components/default_todo_screen.dart';
 import 'package:just_todo/components/icon_text_field.dart';
@@ -13,8 +15,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late int _currentIndex;
-  late List<DefaultTodoScreen> _screens;
+  late DefaultTodoScreen _screen;
   late List<DrawerItemData> _drawerItemList;
   late List<DrawerItemData> _customDrawerItemList;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -22,7 +23,6 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = 0;
     _drawerItemList = [
       DrawerItemData(
         iconData: Icons.sunny,
@@ -55,17 +55,15 @@ class _HomeState extends State<Home> {
         title: '작업',
       )
     ];
+
+    for (var data in _drawerItemList) {
+      data.screen =
+          DefaultTodoScreen(primaryColor: data.color, title: data.title);
+    }
     _customDrawerItemList = [];
-    _screens = [
-      ..._drawerItemList
-          .map(
-            (e) => DefaultTodoScreen(
-              primaryColor: e.color,
-              title: e.title,
-            ),
-          )
-          .toList(),
-    ];
+
+    _screen = _drawerItemList[0].screen ??
+        const DefaultTodoScreen(primaryColor: Colors.red, title: '빈 페이지');
   }
 
   Widget drawerFolderItem({required DrawerFolderData data}) {
@@ -79,7 +77,7 @@ class _HomeState extends State<Home> {
           data.title.replaceAll('', '\u{200B}'),
           style: const TextStyle(overflow: TextOverflow.ellipsis),
         ),
-        children: data.list.map((e) => drawerItem(data: e, index: 0)).toList(),
+        children: data.list.map((e) => drawerItem(data: e)).toList(),
       ),
       onAccept: (sentData) {
         data.list.add(sentData);
@@ -88,21 +86,27 @@ class _HomeState extends State<Home> {
           _customDrawerItemList.remove(sentData);
         });
       },
+      onLeave: (leaveData) {
+        data.list.remove(leaveData);
+      },
     );
   }
 
-  Widget drawerItem({required DrawerItemData data, required int index}) {
+  Widget drawerItem({
+    required DrawerItemData data,
+  }) {
     return Draggable<DrawerItemData>(
       data: data,
       feedback: Container(),
       child: ListTile(
         onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
           if (_scaffoldKey.currentState!.isDrawerOpen) {
             _scaffoldKey.currentState!.closeDrawer();
           }
+
+          setState(() {
+            _screen = data.screen!;
+          });
         },
         leading: Icon(
           data.iconData,
@@ -141,10 +145,7 @@ class _HomeState extends State<Home> {
               onEditingComplete: () {},
             ),
             ..._drawerItemList.map(
-              (e) => drawerItem(
-                data: e,
-                index: _drawerItemList.indexOf(e),
-              ),
+              (e) => drawerItem(data: e),
             ),
             const Divider(
               color: Colors.white,
@@ -153,10 +154,7 @@ class _HomeState extends State<Home> {
             ..._customDrawerItemList.map(
               (e) => e is DrawerFolderData
                   ? drawerFolderItem(data: e)
-                  : drawerItem(
-                      data: e,
-                      index: _customDrawerItemList.indexOf(e),
-                    ),
+                  : drawerItem(data: e),
             )
           ],
         ),
@@ -171,19 +169,21 @@ class _HomeState extends State<Home> {
                 var count = _customDrawerItemList
                     .where((element) => element.title.contains(title))
                     .length;
+
+                title = '$title${count == 0 ? "" : " $count"}';
+                var screen = DefaultTodoScreen(
+                  primaryColor: Colors.teal,
+                  title: title,
+                );
                 var item = DrawerItemData(
                   iconData: Icons.list,
                   color: Colors.teal,
-                  title: '$title${count == 0 ? "" : " $count"}',
-                );
-                var screen = DefaultTodoScreen(
-                  primaryColor: item.color,
-                  title: item.title,
+                  title: title,
+                  screen: screen,
                 );
 
                 setState(() {
                   _customDrawerItemList.add(item);
-                  _screens.add(screen);
                 });
               },
               icon: const Icon(Icons.add),
@@ -216,6 +216,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    log('build');
     return Scaffold(
       key: _scaffoldKey,
       appBar: Responsive.isDesktop(context) ? null : AppBar(),
@@ -236,7 +237,7 @@ class _HomeState extends State<Home> {
               ),
             Expanded(
               flex: 5,
-              child: _screens[_currentIndex],
+              child: _screen,
             )
           ],
         ),

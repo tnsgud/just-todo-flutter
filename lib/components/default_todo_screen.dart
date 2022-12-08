@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_todo/components/icon_text_field.dart';
@@ -30,7 +32,7 @@ class _DefaultTodoScreenState extends State<DefaultTodoScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.title,
+            '${widget.title}/${_todoList.length}',
             textAlign: TextAlign.left,
             style: GoogleFonts.gothicA1(
               color: widget.primaryColor,
@@ -76,6 +78,8 @@ class _DefaultTodoScreenState extends State<DefaultTodoScreen> {
               var content = _controller.text;
 
               _controller.clear();
+
+              log('hello');
 
               setState(() {
                 _todoList.add(Todo(content: content));
